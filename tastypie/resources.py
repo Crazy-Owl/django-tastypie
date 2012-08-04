@@ -849,7 +849,7 @@ class Resource(object):
                 'unique': field_object.unique
             }
             if not field_object.verbose_name:
-                data['fields'][field_name]['verbose_name'] = field_name.replace("_", " ")
+                data['fields'][field_name]['verbose_name'] = None
             if field_object.dehydrated_type == 'related':
                 if getattr(field_object, 'is_m2m', False):
                     related_type = 'to_many'
