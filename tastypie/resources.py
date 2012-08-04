@@ -1733,9 +1733,9 @@ class ModelResource(Resource):
 
         if hasattr(self._meta, 'queryset'):
             # Get the possible query terms from the current QuerySet.
-            query_terms = self._meta.queryset.query.query_terms.keys()
+            query_terms = self._meta.queryset.query.query_terms
         else:
-            query_terms = QUERY_TERMS.keys()
+            query_terms = QUERY_TERMS
 
         for filter_expr, value in filters.items():
             filter_bits = filter_expr.split(LOOKUP_SEP)
