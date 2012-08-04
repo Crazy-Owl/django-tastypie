@@ -848,7 +848,7 @@ class Resource(object):
                 'unique': field_object.unique
             }
             if not field_object.verbose_name:
-                data['fields'][field_name]['verbose_name'] = ''
+                data['fields'][field_name]['verbose_name'] = None
             else:
                 data['fields'][field_name]['verbose_name'] = field_object.verbose_name
             if field_object.dehydrated_type == 'related':
