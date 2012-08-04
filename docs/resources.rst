@@ -22,18 +22,18 @@ A sample resource definition might look something like::
     from tastypie.authorization import DjangoAuthorization
     from tastypie.resources import ModelResource, ALL, ALL_WITH_RELATIONS
     from myapp.models import Entry
-    
-    
+
+
     class UserResource(ModelResource):
         class Meta:
             queryset = User.objects.all()
             resource_name = 'auth/user'
             excludes = ['email', 'password', 'is_superuser']
-    
-    
+
+
     class EntryResource(ModelResource):
         user = fields.ForeignKey(UserResource, 'user')
-        
+
         class Meta:
             queryset = Entry.objects.all()
             list_allowed_methods = ['get', 'post']
@@ -97,7 +97,7 @@ As an example, we'll walk through what a GET request to a list endpoint (say
   * the user is authenticated (``is_authenticated``),
   * the user is authorized (``is_authorized``),
   * & the user has not exceeded their throttle (``throttle_check``).
-  
+
   At this point, ``dispatch`` actually calls the requested method (``get_list``).
 
 * ``get_list`` does the actual work of the API. It does:
@@ -130,22 +130,9 @@ As an example, we'll walk through what a GET request to a list endpoint (say
 
 Processing on other endpoints or using the other HTTP methods results in a
 similar cycle, usually differing only in what "actual work" method gets called
-(which follows the format of "``<http_method>_<list_or_detail>"). In the case
+(which follows the format of "``<http_method>_<list_or_detail>``"). In the case
 of POST/PUT, the ``hydrate`` cycle additionally takes place and is used to take
 the user data & convert it to raw data for storage.
-
-
-What Are Bundles?
-=================
-
-Bundles are a small abstraction that allow Tastypie to pass data between
-resources. This allows us not to depend on passing ``request`` to every single
-method (especially in places where this would be overkill). It also allows
-resources to work with data coming into the application paired together with
-an unsaved instance of the object in question.
-
-Think of it as package of user data & an object instance (either of which are
-optionally present).
 
 
 Why Resource URIs?
@@ -237,10 +224,10 @@ A simple example::
     class MyResource(ModelResource):
         # The ``title`` field is already added to the class by ``ModelResource``
         # and populated off ``Note.title``. But we want allcaps titles...
-        
+
         class Meta:
             queryset = Note.objects.all()
-        
+
         def dehydrate_title(self, bundle):
             return bundle.data['title'].upper()
 
@@ -250,21 +237,21 @@ A complex example::
         # As is, this is just an empty field. Without the ``dehydrate_rating``
         # method, no data would be populated for it.
         rating = fields.FloatField(readonly=True)
-        
+
         class Meta:
             queryset = Note.objects.all()
-        
+
         def dehydrate_rating(self, bundle):
             total_score = 0.0
-            
+
             # Make sure we don't have to worry about "divide by zero" errors.
             if not bundle.obj.rating_set.count():
                 return rating
-            
+
             # We'll run over all the ``Rating`` objects & calculate an average.
             for rating in bundle.obj.rating_set.all():
                 total_score += rating.rating
-            
+
             return total_score /  bundle.obj.rating_set.count()
 
 The return value is updated in the ``bundle.data``. You should avoid altering
@@ -284,7 +271,7 @@ A simple example::
     class MyResource(ModelResource):
         class Meta:
             queryset = Note.objects.all()
-        
+
         def dehydrate(self, bundle):
             # Include the request IP in the bundle.
             bundle.data['request_ip'] = bundle.request.META.get('REMOTE_ADDR')
@@ -296,7 +283,7 @@ A complex example::
         class Meta:
             queryset = User.objects.all()
             excludes = ['email', 'password', 'is_staff', 'is_superuser']
-        
+
         def dehydrate(self, bundle):
             # If they're requesting their own record, add in their email address.
             if bundle.request.user.pk == bundle.obj.pk:
@@ -304,7 +291,7 @@ A complex example::
                 # By this time, it doesn't matter, as the built data will no
                 # longer be checked against the fields on the ``Resource``.
                 bundle.data['email'] = bundle.obj.email
-            
+
             return bundle
 
 This method should return a ``bundle``, whether it modifies the existing one or creates a whole new one. You can even remove any/all data from the
@@ -328,27 +315,46 @@ The cycle looks like:
 
 * Put the data from the client into a ``Bundle`` instance, which is then passed
   through the various methods.
-* Run through all fields on the ``Resource``, letting each field
-  perform its own ``hydrate`` method on the ``bundle``.
-* While processing each field, look for a ``hydrate_<fieldname>`` method on
+* If the ``hydrate`` method is present on the ``Resource``, it is called & given the entire ``bundle``.
+* Then run through all fields on the ``Resource``, look for a ``hydrate_<fieldname>`` method on
   the ``Resource``. If it's present, call it with the ``bundle``.
-* Finally, after all fields are processed, if the ``hydrate`` method is
-  present on the ``Resource``, it is called & given the entire ``bundle``.
+* Finally after all other processing is done, while processing each field, let each field
+  perform its own ``hydrate`` method on the ``bundle``.
 
 The goal of this cycle is to populate the ``bundle.obj`` data model with data
 suitable for saving/persistence. Again, with the exception of the ``alter_*``
 methods (as hooks to manipulate the overall structure), this cycle controls what
 how the data from the client is interpreted & placed on the data model.
 
-Per-field ``hydrate``
-~~~~~~~~~~~~~~~~~~~~~
+``hydrate``
+~~~~~~~~~~~
 
-Each field (even custom ``ApiField`` subclasses) has its own ``hydrate``
-method. If it knows how to access data (say, given the ``attribute`` kwarg), it
-will attempt to take data from the ``bundle.data`` & assign it on the data
-model.
+The ``hydrate`` method allows you to make initial changes to the ``bundle.obj``.
+This includes things like prepopulating fields you don't expose over the API,
+recalculating related data or mangling data.
 
-The return value is put in the ``bundle.obj`` attribute for that fieldname.
+Example::
+
+    class MyResource(ModelResource):
+        # The ``title`` field is already added to the class by ``ModelResource``
+        # and populated off ``Note.title``. We'll use that title to build a
+        # ``Note.slug`` as well.
+
+        class Meta:
+            queryset = Note.objects.all()
+
+        def hydrate(self, bundle):
+            # Don't change existing slugs.
+            # In reality, this would be better implemented at the ``Note.save``
+            # level, but is for demonstration.
+            if not bundle.obj.pk:
+                bundle.obj.slug = slugify(bundle.data['title'])
+
+            return bundle
+
+This method should return a ``bundle``, whether it modifies the existing one or
+creates a whole new one. You can even remove any/all data from the
+``bundle.obj`` if you wish.
 
 ``hydrate_FOO``
 ~~~~~~~~~~~~~~~
@@ -366,42 +372,25 @@ A simple example::
     class MyResource(ModelResource):
         # The ``title`` field is already added to the class by ``ModelResource``
         # and populated off ``Note.title``. But we want lowercase titles...
-        
+
         class Meta:
             queryset = Note.objects.all()
-        
+
         def hydrate_title(self, bundle):
-            return bundle.data['title'].lower()
-
-The return value is updated in the ``bundle.obj``.
-
-``hydrate``
-~~~~~~~~~~~
-
-The ``hydrate`` method allows you to make final changes to the ``bundle.obj``. This includes things like prepopulating fields you don't expose over the API,
-recalculating related data or mangling data.
-
-Example::
-
-    class MyResource(ModelResource):
-        # The ``title`` field is already added to the class by ``ModelResource``
-        # and populated off ``Note.title``. We'll use that title to build a
-        # ``Note.slug`` as well.
-        
-        class Meta:
-            queryset = Note.objects.all()
-        
-        def hydrate(self, bundle):
-            # Don't change existing slugs.
-            # In reality, this would be better implemented at the ``Note.save``
-            # level, but is for demonstration.
-            if not bundle.obj.pk:
-                bundle.obj.slug = slugify(bundle.data['title'])
-            
+            bundle.data['title'] = bundle.data['title'].lower()
             return bundle
 
-This method should return a ``bundle``, whether it modifies the existing one or creates a whole new one. You can even remove any/all data from the
-``bundle.obj`` if you wish.
+The return value is the ``bundle``.
+
+Per-field ``hydrate``
+~~~~~~~~~~~~~~~~~~~~~
+
+Each field (even custom ``ApiField`` subclasses) has its own ``hydrate``
+method. If it knows how to access data (say, given the ``attribute`` kwarg), it
+will attempt to take data from the ``bundle.data`` & assign it on the data
+model.
+
+The return value is put in the ``bundle.obj`` attribute for that fieldname.
 
 
 Reverse "Relationships"
@@ -421,18 +410,18 @@ relationship looks like so::
   from tastypie import fields
   from tastypie.resources import ModelResource
   from myapp.models import Note, Comment
-  
-  
+
+
   class NoteResource(ModelResource):
       comments = fields.ToManyField('myapp.api.resources.CommentResource', 'comments')
-      
+
       class Meta:
           queryset = Note.objects.all()
-  
-  
+
+
   class CommentResource(ModelResource):
       note = fields.ToOneField(NoteResource, 'notes')
-      
+
       class Meta:
           queryset = Comment.objects.all()
 
@@ -450,11 +439,11 @@ a similar relation in Tastypie would look like::
   from tastypie import fields
   from tastypie.resources import ModelResource
   from myapp.models import Note
-  
-  
+
+
   class NoteResource(ModelResource):
       sub_notes = fields.ToManyField('self', 'notes')
-      
+
       class Meta:
           queryset = Note.objects.all()
 
@@ -493,7 +482,7 @@ The inner ``Meta`` class allows for class-level configuration of how the
 -------------------
 
   Controls which paginator class the ``Resource`` should use. Default is
-  ``tastypie.paginator.Paginator()``.
+  ``tastypie.paginator.Paginator``.
 
 .. note::
 
@@ -519,21 +508,24 @@ The inner ``Meta`` class allows for class-level configuration of how the
   Controls what list & detail REST methods the ``Resource`` should respond to.
   Default is ``None``, which means delegate to the more specific
   ``list_allowed_methods`` & ``detail_allowed_methods`` options.
-  
-  You may specify a list like ``['get', 'post', 'put', 'delete']`` as a shortcut
+
+  You may specify a list like ``['get', 'post', 'put', 'delete', 'patch']`` as a shortcut
   to prevent having to specify the other options.
 
 ``list_allowed_methods``
 ------------------------
 
   Controls what list REST methods the ``Resource`` should respond to. Default
-  is ``['get', 'post', 'put', 'delete']``.
+  is ``['get', 'post', 'put', 'delete', 'patch']``.
+
+
+.. _detail-allowed-methods:
 
 ``detail_allowed_methods``
 --------------------------
 
   Controls what detail REST methods the ``Resource`` should respond to. Default
-  is ``['get', 'post', 'put', 'delete']``.
+  is ``['get', 'post', 'put', 'delete', 'patch']``.
 
 ``limit``
 ---------
@@ -541,6 +533,13 @@ The inner ``Meta`` class allows for class-level configuration of how the
   Controls what how many results the ``Resource`` will show at a time. Default
   is either the ``API_LIMIT_PER_PAGE`` setting (if provided) or ``20`` if not
   specified.
+
+``max_limit``
+-------------
+
+  Controls the maximum number of results the ``Resource`` will show at a time.
+  If the user-specified ``limit`` is higher than this, it will be capped to
+  this limit. Set to ``0`` or ``None`` to allow unlimited results.
 
 ``api_name``
 ------------
@@ -553,7 +552,7 @@ The inner ``Meta`` class allows for class-level configuration of how the
 
   An override for the ``Resource`` to use when generating resource URLs.
   Default is ``None``.
-  
+
   If not provided, the ``Resource`` or ``ModelResource`` will attempt to name
   itself. This means a lowercase version of the classname preceding the word
   ``Resource`` if present (i.e. ``SampleContentResource`` would become
@@ -571,7 +570,7 @@ The inner ``Meta`` class allows for class-level configuration of how the
 
   Provides a list of fields that the ``Resource`` will accept client
   filtering on. Default is ``{}``.
-  
+
   Keys should be the fieldnames as strings while values should be a list of
   accepted filter types.
 
@@ -580,7 +579,7 @@ The inner ``Meta`` class allows for class-level configuration of how the
 
   Specifies the what fields the ``Resource`` should should allow ordering on.
   Default is ``[]``.
-  
+
   Values should be the fieldnames as strings. When provided to the ``Resource``
   by the ``order_by`` GET parameter, you can specify either the ``fieldname``
   (ascending order) or ``-fieldname`` (descending order).
@@ -590,7 +589,7 @@ The inner ``Meta`` class allows for class-level configuration of how the
 
   Provides the ``Resource`` with the object that serves as the data source.
   Default is ``None``.
-  
+
   In the case of ``ModelResource``, this is automatically populated by the
   ``queryset`` option and is the model class.
 
@@ -599,8 +598,14 @@ The inner ``Meta`` class allows for class-level configuration of how the
 
   Provides the ``Resource`` with the set of Django models to respond with.
   Default is ``None``.
-  
+
   Unused by ``Resource`` but present for consistency.
+
+.. warning::
+
+  If you place any callables in this, they'll only be evaluated once (when
+  the ``Meta`` class is instantiated). This especially affects things that
+  are date/time related. Please see the :ref:cookbook for a way around this.
 
 ``fields``
 ----------
@@ -632,13 +637,25 @@ The inner ``Meta`` class allows for class-level configuration of how the
 
   Specifies all HTTP methods (except ``DELETE``) should return a serialized form
   of the data. Default is ``False``.
-  
+
   If ``False``, ``HttpNoContent`` (204) is returned on ``POST/PUT``
   with an empty body & a ``Location`` header of where to request the full
   resource.
-  
+
   If ``True``, ``HttpAccepted`` (202) is returned on ``POST/PUT``
   with a body containing all the data in a serialized form.
+
+``collection_name``
+------------~~~~~~~
+
+  Specifies the collection of objects returned in the ``GET`` list will be
+  named. Default is ``objects``.
+
+``detail_uri_name``
+~~~~~~~~~~~~~~~~~~~
+
+  Specifies the name for the regex group that matches on detail views. Defaults
+  to ``pk``.
 
 
 Basic Filtering
@@ -680,19 +697,19 @@ additional constraints (e.g. text filtering using `django-haystack
 filter the queryset before processing a request::
 
     from haystack.query import SearchQuerySet
-    
+
     class MyResource(Resource):
         def build_filters(self, filters=None):
             if filters is None:
                 filters = {}
-            
+
             orm_filters = super(MyResource, self).build_filters(filters)
-            
+
             if "q" in filters:
                 sqs = SearchQuerySet().auto_query(filters['q'])
-                
-                orm_filters = {"pk__in": [ i.pk for i in sqs ]}
-            
+
+                orm_filters["pk__in"] = [i.pk for i in sqs]
+
             return orm_filters
 
 
@@ -736,7 +753,15 @@ Should return a list of individual URLconf lines (**NOT** wrapped in
 
 .. method:: Resource.override_urls(self)
 
-A hook for adding your own URLs or overriding the default URLs. Useful for
+Deprecated. Will be removed by v1.0.0. Please use ``Resource.prepend_urls``
+instead.
+
+``prepend_urls``
+----------------
+
+.. method:: Resource.prepend_urls(self)
+
+A hook for adding your own URLs or matching before the default URLs. Useful for
 adding custom endpoints or overriding the built-in ones (from ``base_urls``).
 
 Should return a list of individual URLconf lines (**NOT** wrapped in
@@ -887,10 +912,10 @@ HTTP methods to check against. Usually, this looks like::
 
     # The most generic lookup.
     self.method_check(request, self._meta.allowed_methods)
-    
+
     # A lookup against what's allowed for list-type methods.
     self.method_check(request, self._meta.list_allowed_methods)
-    
+
     # A useful check when creating a new endpoint that only handles
     # GET.
     self.method_check(request, ['get'])
@@ -972,34 +997,70 @@ Allows for the sorting of objects being returned.
 ``ModelResource`` includes a full working version specific to Django's
 ``Models``.
 
+``get_bundle_detail_data``
+--------------------------
+
+.. method:: Resource.get_bundle_detail_data(self, bundle)
+
+Convenience method to return the ``detail_uri_name`` attribute off
+``bundle.obj``.
+
+Usually just accesses ``bundle.obj.pk`` by default.
+
 ``get_resource_uri``
 --------------------
 
-.. method:: Resource.get_resource_uri(self, bundle_or_obj)
+.. method:: Resource.get_resource_uri(self, bundle_or_obj=None, url_name='api_dispatch_list')
 
-*This needs to be implemented at the user level.*
+Handles generating a resource URI.
 
-A ``return reverse("api_dispatch_detail", kwargs={'resource_name':
-self.resource_name, 'pk': object.id})`` should be all that would
-be needed.
+If the ``bundle_or_obj`` argument is not provided, it builds the URI
+for the list endpoint.
+
+If the ``bundle_or_obj`` argument is provided, it builds the URI for
+the detail endpoint.
+
+Return the generated URI. If that URI can not be reversed (not found
+in the URLconf), it will return an empty string.
+
+``resource_uri_kwargs``
+-----------------------
+
+.. method:: Resource.resource_uri_kwargs(self, bundle_or_obj=None)
+
+Handles generating a resource URI.
+
+If the ``bundle_or_obj`` argument is not provided, it builds the URI
+for the list endpoint.
+
+If the ``bundle_or_obj`` argument is provided, it builds the URI for
+the detail endpoint.
+
+Return the generated URI. If that URI can not be reversed (not found
+in the URLconf), it will return ``None``.
+
+``detail_uri_kwargs``
+---------------------
+
+.. method:: Resource.detail_uri_kwargs(self, bundle_or_obj)
+
+This needs to be implemented at the user level.
+
+Given a ``Bundle`` or an object, it returns the extra kwargs needed to
+generate a detail URI.
 
 ``ModelResource`` includes a full working version specific to Django's
 ``Models``.
 
-``get_resource_list_uri``
--------------------------
-
-.. method:: Resource.get_resource_list_uri(self)
-
-Returns a URL specific to this resource's list endpoint.
-
 ``get_via_uri``
 ---------------
 
-.. method:: Resource.get_via_uri(self, uri)
+.. method:: Resource.get_via_uri(self, uri, request=None)
 
 This pulls apart the salient bits of the URI and populates the
 resource via a ``obj_get``.
+
+Optionally accepts a ``request``.
 
 If you need custom behavior based on other portions of the URI,
 simply override this method.
@@ -1374,6 +1435,73 @@ Destroys a single resource/object.
 Calls ``obj_delete``.
 
 If the resource is deleted, return ``HttpNoContent`` (204 No Content).
+If the resource did not exist, return ``HttpNotFound`` (404 Not Found).
+
+
+.. _patch-list:
+
+``patch_list``
+--------------
+
+.. method:: Resource.patch_list(self, request, **kwargs)
+
+Updates a collection in-place.
+
+The exact behavior of ``PATCH`` to a list resource is still the matter of
+some debate in REST circles, and the ``PATCH`` RFC isn't standard. So the
+behavior this method implements (described below) is something of a
+stab in the dark. It's mostly cribbed from GData, with a smattering
+of ActiveResource-isms and maybe even an original idea or two.
+
+The ``PATCH`` format is one that's similar to the response returned from
+a ``GET`` on a list resource::
+
+    {
+      "objects": [{object}, {object}, ...],
+      "deleted_objects": ["URI", "URI", "URI", ...],
+    }
+
+For each object in ``objects``:
+
+  * If the dict does not have a ``resource_uri`` key then the item is
+    considered "new" and is handled like a ``POST`` to the resource list.
+
+  * If the dict has a ``resource_uri`` key and the ``resource_uri`` refers
+    to an existing resource then the item is a update; it's treated
+    like a ``PATCH`` to the corresponding resource detail.
+
+  * If the dict has a ``resource_uri`` but the resource *doesn't* exist,
+    then this is considered to be a create-via-``PUT``.
+
+Each entry in ``deleted_objects`` referes to a resource URI of an existing
+resource to be deleted; each is handled like a ``DELETE`` to the relevent
+resource.
+
+In any case:
+
+  * If there's a resource URI it *must* refer to a resource of this
+    type. It's an error to include a URI of a different resource.
+
+  * ``PATCH`` is all or nothing. If a single sub-operation fails, the
+    entire request will fail and all resources will be rolled back.
+
+  * For ``PATCH`` to work, you **must** have ``put`` in your
+    :ref:`detail-allowed-methods` setting.
+
+  * To delete objects via ``deleted_objects`` in a ``PATCH`` request you
+    **must** have ``delete`` in your :ref:`detail-allowed-methods` setting.
+
+
+``patch_detail``
+----------------
+
+.. method:: Resource.patch_detail(self, request, **kwargs)
+
+Updates a resource in-place.
+
+Calls ``obj_update``.
+
+If the resource is updated, return ``HttpAccepted`` (202 Accepted).
 If the resource did not exist, return ``HttpNotFound`` (404 Not Found).
 
 ``get_schema``
