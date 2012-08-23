@@ -833,7 +833,6 @@ class Resource(object):
             'allowed_list_http_methods': self._meta.list_allowed_methods,
             'allowed_detail_http_methods': self._meta.detail_allowed_methods,
             'default_limit': self._meta.limit,
-            'resource_class': str(self.__class__.__name__)
         }
 
         if self._meta.ordering:
@@ -862,7 +861,7 @@ class Resource(object):
                 else:
                     related_type = 'to_one'
                 data['fields'][field_name]['related_type'] = related_type
-                data['fields'][field_name]['related_resource'] = str(field_object.to.__class__.__name__)
+                data['fields'][field_name]['related_uri'] = field_object.to_class.get_resource_uri()
         return data
 
     def dehydrate_resource_uri(self, bundle):
