@@ -835,6 +835,16 @@ class Resource(object):
             'default_limit': self._meta.limit,
         }
 
+        if not self._meta.verbose_name:
+            data['verbose_name'] = None
+        else:
+            data['verbose_name'] = self._meta.verbose_name
+
+        if not self._meta.verbose_name_plural:
+            data['verbose_name_plural'] = None
+        else:
+            data['verbose_name_plural'] = self._meta.verbose_name_plural
+
         if self._meta.ordering:
             data['ordering'] = self._meta.ordering
 
