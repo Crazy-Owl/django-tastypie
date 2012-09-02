@@ -836,12 +836,12 @@ class Resource(object):
         }
 
         if not self._meta.verbose_name:
-            data['verbose_name'] = None
+            data['verbose_name'] = self._meta.resource_name
         else:
             data['verbose_name'] = self._meta.verbose_name
 
         if not self._meta.verbose_name_plural:
-            data['verbose_name_plural'] = None
+            data['verbose_name_plural'] = self._meta.resource_name
         else:
             data['verbose_name_plural'] = self._meta.verbose_name_plural
 
