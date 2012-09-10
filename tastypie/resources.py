@@ -1,6 +1,8 @@
 from __future__ import with_statement
 import logging
 import warnings
+from collections import OrderedDict
+
 import django
 from django.conf import settings
 from django.conf.urls.defaults import patterns, url
@@ -10,6 +12,7 @@ from django.db import transaction
 from django.db.models.sql.constants import QUERY_TERMS, LOOKUP_SEP
 from django.http import HttpResponse, HttpResponseNotFound, Http404
 from django.utils.cache import patch_cache_control
+
 from tastypie.authentication import Authentication
 from tastypie.authorization import ReadOnlyAuthorization
 from tastypie.bundle import Bundle
@@ -25,6 +28,7 @@ from tastypie.utils import is_valid_jsonp_callback_value, dict_strip_unicode_key
 from tastypie.utils.mime import determine_format, build_content_type
 from tastypie.validation import Validation
 from tastypie.fields import CharField
+
 try:
     set
 except NameError:
@@ -1608,7 +1612,7 @@ class ModelResource(Resource):
         Given any explicit fields to include and fields to exclude, add
         additional fields based on the associated model.
         """
-        final_fields = {}
+        final_fields = OrderedDict()
         fields = fields or []
         excludes = excludes or []
 
