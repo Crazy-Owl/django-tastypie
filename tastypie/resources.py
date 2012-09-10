@@ -855,7 +855,7 @@ class Resource(object):
         Used by the ``schema/`` endpoint to describe what will be available.
         """
         data = {
-            'fields': {},
+            'fields': OrderedDict(),
             'default_format': self._meta.default_format,
             'allowed_list_http_methods': self._meta.list_allowed_methods,
             'allowed_detail_http_methods': self._meta.detail_allowed_methods,
