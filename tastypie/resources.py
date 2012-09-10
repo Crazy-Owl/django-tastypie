@@ -1552,7 +1552,9 @@ class ModelDeclarativeMetaclass(DeclarativeMetaclass):
         field_names = new_class.base_fields.keys()
 
         # Add in the new fields.
-        new_class.base_fields.update(new_class.get_fields(include_fields, excludes))
+        cur_base_fields_dict = new_class.base_fields
+        new_class.base_fields = new_class.get_fields(include_fields, excludes)
+        new_class.base_fields.update(cur_base_fields_dict)
 
         for field_name in field_names:
             if field_name == 'resource_uri':
@@ -1563,7 +1565,6 @@ class ModelDeclarativeMetaclass(DeclarativeMetaclass):
                 del(new_class.base_fields[field_name])
             if len(excludes) and field_name in excludes:
                 del(new_class.base_fields[field_name])
-
 
         if getattr(new_class._meta, 'include_absolute_url', True):
             if not 'absolute_url' in new_class.base_fields:
