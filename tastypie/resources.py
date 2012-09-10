@@ -1626,6 +1626,11 @@ class ModelResource(Resource):
         Given any explicit fields to include and fields to exclude, add
         additional fields based on the associated model.
         """
+        try:
+            from django.conf import settings
+            debug_output = settings.TASTYPIE_FIELDS_DEBUG_OUTPUT
+        except AttributeError:
+            debug_output = False
         final_fields = OrderedDict()
         fields = fields or []
         excludes = excludes or []
@@ -1634,6 +1639,8 @@ class ModelResource(Resource):
             return final_fields
 
         for f in cls._meta.object_class._meta.fields:
+            if debug_output:
+                print 'model_field: {0}, {1}'.format(f.name, f)
             # If the field name is already present, skip
             if f.name in cls.base_fields:
                 continue
