@@ -110,7 +110,7 @@ class ResourceOptions(object):
 
 class DeclarativeMetaclass(type):
     def __new__(cls, name, bases, attrs):
-        attrs['base_fields'] = {}
+        attrs['base_fields'] = OrderedDict()
         declared_fields = {}
 
         # Inherit any fields from parent(s).
