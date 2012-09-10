@@ -111,7 +111,7 @@ class ResourceOptions(object):
 class DeclarativeMetaclass(type):
     def __new__(cls, name, bases, attrs):
         attrs['base_fields'] = OrderedDict()
-        declared_fields = {}
+        declared_fields = OrderedDict()
 
         # Inherit any fields from parent(s).
         try:
@@ -135,8 +135,17 @@ class DeclarativeMetaclass(type):
                 field = attrs.pop(field_name)
                 declared_fields[field_name] = field
 
+        try:
+            from django.conf import settings
+            debug_output = settings.TASTYPIE_FIELDS_DEBUG_OUTPUT
+        except AttributeError:
+            debug_output = False
+        if debug_output:
+            print attrs['base_fields'].keys()
         attrs['base_fields'].update(declared_fields)
         attrs['declared_fields'] = declared_fields
+        if debug_output:
+            print attrs['base_fields'].keys()
         new_class = super(DeclarativeMetaclass, cls).__new__(cls, name, bases, attrs)
         opts = getattr(new_class, 'Meta', None)
         new_class._meta = ResourceOptions(opts)
