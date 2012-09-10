@@ -856,6 +856,7 @@ class Resource(object):
         """
         data = {
             'fields': OrderedDict(),
+            'fields_order': self.fields.keys(),
             'default_format': self._meta.default_format,
             'allowed_list_http_methods': self._meta.list_allowed_methods,
             'allowed_detail_http_methods': self._meta.detail_allowed_methods,
