@@ -909,6 +909,7 @@ class Resource(object):
                     related_type = 'to_one'
                 data['fields'][field_name]['related_type'] = related_type
                 data['fields'][field_name]['related_uri'] = field_object.to_class().get_resource_uri()
+                data['fields'][field_name]['']
         return data
 
     def dehydrate_resource_uri(self, bundle):
@@ -1385,7 +1386,7 @@ class Resource(object):
 
         """
         request = convert_post_to_patch(request)
-        deserialized = self.deserialize(request, request.raw_post_data, format=request.META.get('CONTENT_TYPE', 'application/json'))
+        deserialized = self.deserialize(request, format=request.META.get('CONTENT_TYPE', 'application/json'))
 
         if "objects" not in deserialized:
             raise BadRequest("Invalid data sent.")
