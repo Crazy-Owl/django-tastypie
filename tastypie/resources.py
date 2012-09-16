@@ -909,7 +909,6 @@ class Resource(object):
                     related_type = 'to_one'
                 data['fields'][field_name]['related_type'] = related_type
                 data['fields'][field_name]['related_uri'] = field_object.to_class().get_resource_uri()
-                data['fields'][field_name]['']
         return data
 
     def dehydrate_resource_uri(self, bundle):
