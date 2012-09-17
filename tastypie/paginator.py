@@ -116,9 +116,9 @@ class Paginator(object):
         Slices the result set to the specified ``limit`` & ``offset``.
         """
         if limit == 0:
-            raise BadRequest("Invalid limit '%s' provided. Please provide a positive, non-zero, integer." % limit)
-
-        return self.objects[offset:offset + limit]
+            return self.objects[offset:]
+        else:
+            return self.objects[offset:offset + limit]
 
     def get_count(self):
         """
@@ -194,10 +194,7 @@ class Paginator(object):
         limit = self.get_limit()
         offset = self.get_offset()
         count = self.get_count()
-        if limit != 0:
-            objects = self.get_slice(limit, offset)
-        else:
-            objects = self.objects
+        objects = self.get_slice(limit, offset)
         meta = {
             'offset': offset,
             'limit': limit,
