@@ -71,11 +71,11 @@ class Paginator(object):
         except ValueError:
             raise BadRequest("Invalid limit '%s' provided. Please provide a positive integer." % limit)
 
-        if limit == 0:
-            if self.limit:
-                limit = self.limit
-            else:
-                limit = settings_limit
+        # if limit == 0:
+        #     if self.limit:
+        #         limit = self.limit
+        #     else:
+        #         limit = settings_limit
 
         if limit < 0:
             raise BadRequest("Invalid limit '%s' provided. Please provide a positive integer >= 0." % limit)
