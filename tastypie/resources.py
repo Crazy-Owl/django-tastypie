@@ -13,7 +13,7 @@ try:
     from django.db.models.sql.constants import QUERY_TERMS, LOOKUP_SEP
 except ImportError:
     from django.db.models.sql.constants import QUERY_TERMS
-    from django.db.models.sql import LOOKUP_SEP
+    from django.db.models.constants import LOOKUP_SEP
 from django.http import HttpResponse, HttpResponseNotFound, Http404
 from django.utils.cache import patch_cache_control, patch_vary_headers
 
