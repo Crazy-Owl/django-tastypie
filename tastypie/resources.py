@@ -241,6 +241,7 @@ class Resource(object):
                 print e
                 return http.HttpBadRequest(', '.join(e.messages))
             except Exception, e:
+                print e
                 if hasattr(e, 'response'):
                     return e.response
 
