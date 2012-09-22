@@ -1140,7 +1140,7 @@ class Resource(object):
 
         if errors:
             bundle.errors[self._meta.resource_name] = errors
-            raise ValidationError(messages=errors) #eat shit and die, fucker
+            raise ValidationError(message=errors) #eat shit and die, fucker
 
         return True
 
