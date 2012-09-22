@@ -236,19 +236,12 @@ class Resource(object):
 
                 return response
             except (BadRequest, fields.ApiFieldError), e:
-                print "exception raised: {0}\n{1}".format(e, type(e))
-                traceback.print_stack()
                 return http.HttpBadRequest(e.args[0])
             except ValidationError, e:
-                print "exception raised: {0}\n{1}".format(e, type(e))
-                traceback.print_stack()
-                return http.HttpBadRequest(', '.join(e.messages))
+                return http.HttpBadRequest(', '.join(e.message_dict.values()))
             except ImmediateHttpResponse, e:
-                print "ImmediateHttpResponse caught, response is {0}".format(e.response)
                 return e.response
             except Exception, e:
-                print "exception raised: {0}\n{1}".format(e, type(e))
-                traceback.print_stack()
                 if hasattr(e, 'response'):
                     return e.response
 
