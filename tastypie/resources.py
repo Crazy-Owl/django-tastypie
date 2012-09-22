@@ -235,13 +235,13 @@ class Resource(object):
 
                 return response
             except (BadRequest, fields.ApiFieldError), e:
-                print "exception raised: {0}".(e)
+                print "exception raised: {0}".format(e)
                 return http.HttpBadRequest(e.args[0])
             except ValidationError, e:
-                print "exception raised: {0}".(e)
+                print "exception raised: {0}".format(e)
                 return http.HttpBadRequest(', '.join(e.messages))
             except Exception, e:
-                print "exception raised: {0}".(e)
+                print "exception raised: {0}".format(e)
                 if hasattr(e, 'response'):
                     return e.response
 
