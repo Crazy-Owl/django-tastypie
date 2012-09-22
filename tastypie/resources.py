@@ -1,6 +1,7 @@
 from __future__ import with_statement
 import logging
 import warnings
+import traceback
 from collections import OrderedDict
 
 import django
@@ -235,13 +236,16 @@ class Resource(object):
 
                 return response
             except (BadRequest, fields.ApiFieldError), e:
-                print "exception raised: {0}".format(e)
+                print "exception raised: {0}\n{1}".format(e, type(e))
+                traceback.print_stack()
                 return http.HttpBadRequest(e.args[0])
             except ValidationError, e:
-                print "exception raised: {0}".format(e)
+                print "exception raised: {0}\n{1}".format(e, type(e))
+                traceback.print_stack()
                 return http.HttpBadRequest(', '.join(e.messages))
             except Exception, e:
-                print "exception raised: {0}".format(e)
+                print "exception raised: {0}\n{1}".format(e, type(e))
+                traceback.print_stack()
                 if hasattr(e, 'response'):
                     return e.response
 
