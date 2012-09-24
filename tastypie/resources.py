@@ -2140,8 +2140,11 @@ class ModelResource(Resource):
                 if field_object.related_name:
                     if not self.get_bundle_detail_data(bundle):
                         bundle.obj.save()
+                        print "bundle obj: {0}".format(bundle.obj)
 
                     setattr(related_obj, field_object.related_name, bundle.obj)
+
+                print "related obj: {0}".format(related_obj)
 
                 related_obj.save()
                 setattr(bundle.obj, field_object.attribute, related_obj)
