@@ -1904,6 +1904,8 @@ class ModelResource(Resource):
 
         Returns a queryset that may have been limited by other overrides.
         """
+        if callable(self._meta.queryset):
+            return self._meta.queryset()._clone()
         return self._meta.queryset._clone()
 
     def obj_get_list(self, request=None, **kwargs):
