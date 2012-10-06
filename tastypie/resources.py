@@ -1551,7 +1551,10 @@ class ModelDeclarativeMetaclass(DeclarativeMetaclass):
         meta = attrs.get('Meta')
 
         if meta and hasattr(meta, 'queryset'):
-            setattr(meta, 'object_class', meta.queryset.model)
+            if callable(meta.queryset):
+                setattr(meta, 'object_class', meta.queryset().model)
+            else:
+                setattr(meta, 'object_class', meta.queryset.model)
 
         new_class = super(ModelDeclarativeMetaclass, cls).__new__(cls, name, bases, attrs)
         include_fields = getattr(new_class._meta, 'fields', [])
@@ -1801,13 +1804,17 @@ class ModelResource(Resource):
         qs_filters = {}
 
         if hasattr(self._meta, 'queryset'):
+            if callable(self._meta.queryset):
+                qs = self._meta.queryset()
+            else:
+                qs = self._meta.queryset
             # Get the possible query terms from the current QuerySet.
-            if hasattr(self._meta.queryset.query.query_terms, 'keys'):
+            if hasattr(qs.query.query_terms, 'keys'):
                 # Django 1.4 & below compatibility.
-                query_terms = self._meta.queryset.query.query_terms.keys()
+                query_terms = qs.query.query_terms.keys()
             else:
                 # Django 1.5+.
-                query_terms = self._meta.queryset.query.query_terms
+                query_terms = qs.query.query_terms
         else:
             query_terms = QUERY_TERMS
 
