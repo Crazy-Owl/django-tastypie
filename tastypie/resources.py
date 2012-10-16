@@ -238,7 +238,7 @@ class Resource(object):
             except (BadRequest, fields.ApiFieldError), e:
                 return http.HttpBadRequest(e.args[0])
             except ValidationError, e:
-                return http.HttpBadRequest('{0}'.format(e.message_dict))
+                return http.HttpBadRequest('{0}'.format(e.messages))
             except ImmediateHttpResponse, e:
                 return e.response
             except Exception, e:
