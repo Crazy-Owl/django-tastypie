@@ -1559,7 +1559,7 @@ class ModelDeclarativeMetaclass(DeclarativeMetaclass):
 
         if meta and hasattr(meta, 'queryset'):
             if callable(meta.queryset):
-                setattr(meta, 'object_class', meta.queryset().model)
+                setattr(meta, 'object_class', meta().queryset().model)
             else:
                 setattr(meta, 'object_class', meta.queryset.model)
 
@@ -1812,7 +1812,7 @@ class ModelResource(Resource):
 
         if hasattr(self._meta, 'queryset'):
             if callable(self._meta.queryset):
-                qs = self._meta.queryset()
+                qs = self._meta().queryset()
             else:
                 qs = self._meta.queryset
             # Get the possible query terms from the current QuerySet.
@@ -1919,7 +1919,7 @@ class ModelResource(Resource):
         Returns a queryset that may have been limited by other overrides.
         """
         if callable(self._meta.queryset):
-            return self._meta.queryset()._clone()
+            return self._meta().queryset()._clone()
         return self._meta.queryset._clone()
 
     def obj_get_list(self, request=None, **kwargs):
