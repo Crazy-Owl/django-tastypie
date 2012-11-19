@@ -1815,6 +1815,7 @@ class ModelResource(Resource):
                 qs = self._meta().queryset()
             else:
                 qs = self._meta.queryset
+        if getattr(self._meta, 'queryset', None) is not None:
             # Get the possible query terms from the current QuerySet.
             if hasattr(qs.query.query_terms, 'keys'):
                 # Django 1.4 & below compatibility.
@@ -1823,7 +1824,12 @@ class ModelResource(Resource):
                 # Django 1.5+.
                 query_terms = qs.query.query_terms
         else:
-            query_terms = QUERY_TERMS
+            if hasattr(QUERY_TERMS, 'keys'):
+                # Django 1.4 & below compatibility.
+                query_terms = QUERY_TERMS.keys()
+            else:
+                # Django 1.5+.
+                query_terms = QUERY_TERMS
 
         for filter_expr, value in filters.items():
             filter_bits = filter_expr.split(LOOKUP_SEP)
